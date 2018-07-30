@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/afritzler/oli/pkg/client"
 	"github.com/spf13/cobra"
@@ -27,7 +28,10 @@ var deleteCmd = &cobra.Command{
 	Short: "Delete a LoadBalancer + everything attached",
 	Long:  `Delete a LoadBalancer + everything attached.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("delete called")
+		if len(args) == 0 {
+			fmt.Println("must provider a loadbalancer ID")
+			os.Exit(1)
+		}
 		osClient, err := client.NewOpenStackProvider()
 		if err != nil {
 			panic(fmt.Errorf("failed to create os client %s", err))
