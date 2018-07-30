@@ -196,6 +196,7 @@ func (o *openstackprovider) DeleteLoadBalancer(id string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get listener for loadbalancer ID %s, %s", id, err)
 	}
+	// remove all listeners for a certain LB ID
 	for _, listenerID := range listenersIDs {
 		poolIds, err := o.GetPoolIDsForListenerID(listenerID)
 		if err != nil {
@@ -203,19 +204,18 @@ func (o *openstackprovider) DeleteLoadBalancer(id string) error {
 		}
 		// remove all pools
 		for _, poolID := range poolIds {
-			// TODO: hm deletion is pretty flacky atm
+			hmIDs, err := o.GetMonitorIDsForPoolID(poolID)
+			if err != nil {
+				return fmt.Errorf("failed to get monitor IDs for pool ID %s, %s", poolID, err)
+			}
 			// remove all health monitors
-			// hmIDs, err := o.GetMonitorIDsForPoolID(poolID)
-			// if err != nil {
-			// 	return fmt.Errorf("failed to get monitor IDs for pool ID %s, %s", poolID, err)
-			// }
-			// for _, hmID := range hmIDs {
-			// 	result := monitors.Delete(o.networkClient, hmID)
-			// 	if result.Err != nil {
-			// 		return fmt.Errorf("failed to delete monitor with ID %s, %s", hmID, result.Err)
-			// 	}
-			// 	fmt.Printf("deleted health monitor with id %s\n", hmID)
-			// }
+			for _, hmID := range hmIDs {
+				result := monitors.Delete(o.networkClient, hmID)
+				if result.Err != nil {
+					return fmt.Errorf("failed to delete monitor with ID %s, %s", hmID, result.Err)
+				}
+				fmt.Printf("deleted health monitor with id %s\n", hmID)
+			}
 			result := pools.Delete(o.networkClient, poolID)
 			if result.Err != nil {
 				return fmt.Errorf("failed to delete pool with ID %s, %s", poolID, result.Err)
