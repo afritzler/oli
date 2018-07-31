@@ -74,7 +74,9 @@ func (o *openstackprovider) ListLBaaS() ([]loadbalancers.LoadBalancer, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create neutron client %s", err)
 	}
-	allPages, err := loadbalancers.List(client, loadbalancers.ListOpts{}).AllPages()
+	allPages, err := loadbalancers.List(client, loadbalancers.ListOpts{
+		TenantID: o.opts.TenantID,
+	}).AllPages()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list all loadbalancers %s", err)
 	}
@@ -100,6 +102,7 @@ func (o *openstackprovider) ListLBaaSIDs() ([]string, error) {
 func (o *openstackprovider) GetListenerIDsForLoadbalancerID(loadbalancerid string) ([]string, error) {
 	allPages, err := listeners.List(o.networkClient, listeners.ListOpts{
 		LoadbalancerID: loadbalancerid,
+		TenantID:       o.opts.TenantID,
 	}).AllPages()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list listeners for loadbalancer id %s", err)
@@ -149,6 +152,7 @@ func (o *openstackprovider) GetPoolIDsForCurrentTenant() ([]string, error) {
 func (o *openstackprovider) GetPoolIDsForListenerID(listenerID string) ([]string, error) {
 	allPages, err := pools.List(o.networkClient, pools.ListOpts{
 		ListenerID: listenerID,
+		TenantID:   o.opts.TenantID,
 	}).AllPages()
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract pool pages %s", err)
@@ -178,7 +182,8 @@ func (o *openstackprovider) ListMonitorIDsForCurrentTenant() ([]string, error) {
 
 func (o *openstackprovider) GetMonitorIDsForPoolID(poolid string) ([]string, error) {
 	monitors, err := o.extractMonitoringPages(monitors.ListOpts{
-		PoolID: poolid,
+		PoolID:   poolid,
+		TenantID: o.opts.TenantID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get monitor %s", err)
