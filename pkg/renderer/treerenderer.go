@@ -38,7 +38,11 @@ func (t *treerenderer) AddLoadBalancer(loadbalancer loadbalancers.LoadBalancer) 
 func (t *treerenderer) AddListener(listener listeners.Listener) treeprint.Tree {
 	for _, lb := range listener.Loadbalancers {
 		lbNode := t.tree.FindByMeta(lb.ID)
-		lbNode.AddMetaNode(listener.ID, "[L] "+listener.Name)
+		if lbNode == nil {
+			t.addOrphan(listener.ID, "[M] "+listener.Name)
+		} else {
+			lbNode.AddMetaNode(listener.ID, "[L] "+listener.Name)
+		}
 	}
 	return t.tree
 }
@@ -46,7 +50,11 @@ func (t *treerenderer) AddListener(listener listeners.Listener) treeprint.Tree {
 func (t *treerenderer) AddPool(pool pools.Pool) treeprint.Tree {
 	for _, listener := range pool.Listeners {
 		lbNode := t.tree.FindByMeta(listener.ID)
-		lbNode.AddMetaNode(pool.ID, "[P] "+pool.Name)
+		if lbNode == nil {
+			t.addOrphan(pool.ID, "[M] "+pool.Name)
+		} else {
+			lbNode.AddMetaNode(pool.ID, "[P] "+pool.Name)
+		}
 	}
 	return t.tree
 }

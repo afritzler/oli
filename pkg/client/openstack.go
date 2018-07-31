@@ -53,7 +53,7 @@ func NewOpenStackProvider() (OpenStackProvider, error) {
 	opts, err := openstack.AuthOptionsFromEnv()
 	opts.DomainName = os.Getenv("OS_USER_DOMAIN_NAME")
 	fmt.Println("============")
-	fmt.Printf("| Creating client\n")
+	fmt.Printf("| OpenStack Client\n")
 	fmt.Printf("| auth_url: %s\n", opts.IdentityEndpoint)
 	fmt.Printf("| domain_name: %s\n", opts.DomainName)
 	fmt.Printf("| tenant_name: %s (id: %s)\n", opts.TenantName, opts.TenantID)
