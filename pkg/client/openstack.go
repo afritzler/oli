@@ -32,8 +32,11 @@ type OpenStackProvider interface {
 	ListLBaaSIDs() ([]string, error)
 	ListLBaaS() ([]loadbalancers.LoadBalancer, error)
 	ListListenerIDsForCurrentTenant() ([]string, error)
+	ListListenersForCurrentTenant() ([]listeners.Listener, error)
 	ListMonitorIDsForCurrentTenant() ([]string, error)
+	ListMonitorsForCurrentTenant() ([]monitors.Monitor, error)
 	GetMonitorIDsForPoolID(poolid string) ([]string, error)
+	GetPoolsForCurrentTenant() ([]pools.Pool, error)
 	GetPoolIDsForListenerID(listenerid string) ([]string, error)
 	GetListenerIDsForLoadbalancerID(loadbalancerid string) ([]string, error)
 	GetPoolIDsForCurrentTenant() ([]string, error)
@@ -49,8 +52,11 @@ type openstackprovider struct {
 func NewOpenStackProvider() (OpenStackProvider, error) {
 	opts, err := openstack.AuthOptionsFromEnv()
 	opts.DomainName = os.Getenv("OS_USER_DOMAIN_NAME")
-	fmt.Printf("Creating client for: auth_url: %s, domain_name: %s, tenant_name: %s (id: %s), user_name: %s\n",
+	fmt.Println("============")
+	fmt.Printf("| Creating client for: auth_url: %s, domain_name: %s, tenant_name: %s (id: %s), user_name: %s\n",
 		opts.IdentityEndpoint, opts.DomainName, opts.TenantName, opts.TenantID, opts.Username)
+	fmt.Println("============")
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to get auth opts from environment %s", err)
 	}
@@ -118,33 +124,54 @@ func (o *openstackprovider) GetListenerIDsForLoadbalancerID(loadbalancerid strin
 	return ids, nil
 }
 
-func (o *openstackprovider) ListListenerIDsForCurrentTenant() ([]string, error) {
-	lbList, err := o.ListLBaaS()
+func (o *openstackprovider) ListListenersForCurrentTenant() ([]listeners.Listener, error) {
+	allPages, err := listeners.List(o.networkClient, listeners.ListOpts{
+		TenantID: o.opts.TenantID,
+	}).AllPages()
 	if err != nil {
-		return nil, fmt.Errorf("failed to list all loadbalancers %s", err)
+		return nil, fmt.Errorf("failed to list all listener pages %s", err)
+	}
+	listeners, err := listeners.ExtractListeners(allPages)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract all listener object %s", err)
+	}
+	return listeners, nil
+}
+
+func (o *openstackprovider) ListListenerIDsForCurrentTenant() ([]string, error) {
+	listeners, err := o.ListListenersForCurrentTenant()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list all listeners %s", err)
 	}
 	var ids []string
-	for _, lb := range lbList {
-		listeners := lb.Listeners
-		for _, listener := range listeners {
-			ids = append(ids, listener.ID)
-		}
+	for _, listener := range listeners {
+		ids = append(ids, listener.ID)
 	}
 	return ids, nil
 }
 
-func (o *openstackprovider) GetPoolIDsForCurrentTenant() ([]string, error) {
-	listeners, err := o.ListListenerIDsForCurrentTenant()
+func (o *openstackprovider) GetPoolsForCurrentTenant() ([]pools.Pool, error) {
+	allPages, err := pools.List(o.networkClient, pools.ListOpts{
+		TenantID: o.opts.TenantID,
+	}).AllPages()
 	if err != nil {
-		return nil, fmt.Errorf("failed to list all loadbalancers %s", err)
+		return nil, fmt.Errorf("failed to list all pool pages %s", err)
+	}
+	pools, err := pools.ExtractPools(allPages)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract all pools from pages %s", err)
+	}
+	return pools, nil
+}
+
+func (o *openstackprovider) GetPoolIDsForCurrentTenant() ([]string, error) {
+	pools, err := o.GetPoolsForCurrentTenant()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list all pools %s", err)
 	}
 	var ids []string
-	for _, listenerID := range listeners {
-		poolIDs, err := o.GetPoolIDsForListenerID(listenerID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to list all pool ids %s", err)
-		}
-		ids = append(poolIDs)
+	for _, pool := range pools {
+		ids = append(ids, pool.ID)
 	}
 	return ids, nil
 }
@@ -167,11 +194,9 @@ func (o *openstackprovider) GetPoolIDsForListenerID(listenerID string) ([]string
 
 // get all monitor IDs for current tenant
 func (o *openstackprovider) ListMonitorIDsForCurrentTenant() ([]string, error) {
-	monitors, err := o.extractMonitoringPages(monitors.ListOpts{
-		TenantID: o.opts.TenantID,
-	})
+	monitors, err := o.ListMonitorsForCurrentTenant()
 	if err != nil {
-		return nil, fmt.Errorf("failed to extract monitor pages %s", err)
+		return nil, fmt.Errorf("failed to list monitors %s", err)
 	}
 	var ids []string
 	for _, monitor := range monitors {
@@ -180,13 +205,37 @@ func (o *openstackprovider) ListMonitorIDsForCurrentTenant() ([]string, error) {
 	return ids, nil
 }
 
-func (o *openstackprovider) GetMonitorIDsForPoolID(poolid string) ([]string, error) {
-	monitors, err := o.extractMonitoringPages(monitors.ListOpts{
-		PoolID:   poolid,
+func (o *openstackprovider) ListMonitorsForCurrentTenant() ([]monitors.Monitor, error) {
+	allPages, err := monitors.List(o.networkClient, monitors.ListOpts{
 		TenantID: o.opts.TenantID,
-	})
+	}).AllPages()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get monitor %s", err)
+		return nil, fmt.Errorf("failed to list monitors %s", err)
+	}
+	monitors, err := monitors.ExtractMonitors(allPages)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract monitor pages %s", err)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to list monitors %s", err)
+	}
+	return monitors, nil
+}
+
+func (o *openstackprovider) GetMonitorIDsForPoolID(poolid string) ([]string, error) {
+	allPages, err := monitors.List(o.networkClient, monitors.ListOpts{
+		TenantID: o.opts.TenantID,
+		PoolID:   poolid,
+	}).AllPages()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list monitors %s", err)
+	}
+	monitors, err := monitors.ExtractMonitors(allPages)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract monitor pages %s", err)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to list monitors %s", err)
 	}
 	var ids []string
 	for _, monitor := range monitors {
@@ -239,16 +288,4 @@ func (o *openstackprovider) DeleteLoadBalancer(id string) error {
 	}
 	fmt.Printf("deleted loadbalancer with id %s\n", id)
 	return nil
-}
-
-func (o *openstackprovider) extractMonitoringPages(listOpts monitors.ListOpts) ([]monitors.Monitor, error) {
-	allPages, err := monitors.List(o.networkClient, listOpts).AllPages()
-	if err != nil {
-		return nil, fmt.Errorf("failed to list monitors %s", err)
-	}
-	actual, err := monitors.ExtractMonitors(allPages)
-	if err != nil {
-		return nil, fmt.Errorf("failed to extract monitor pages %s", err)
-	}
-	return actual, nil
 }

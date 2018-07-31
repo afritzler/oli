@@ -18,6 +18,7 @@ import (
 	"fmt"
 
 	"github.com/afritzler/oli/pkg/client"
+	"github.com/afritzler/oli/pkg/renderer"
 	"github.com/spf13/cobra"
 )
 
@@ -36,6 +37,8 @@ func init() {
 }
 
 func listEverything() {
+	r := renderer.NewTreeRenderer()
+
 	osClient, err := client.NewOpenStackProvider()
 	if err != nil {
 		panic(fmt.Errorf("failed to create os client %s", err))
@@ -44,40 +47,29 @@ func listEverything() {
 	if err != nil {
 		panic(fmt.Errorf("failed to list lb ids %s", err))
 	}
-	fmt.Printf("-------------------------------------------------------------------------\n")
-	fmt.Printf("LoadBalancer IDs                     | Name\n")
-	fmt.Printf("-------------------------------------------------------------------------\n")
 	for _, lb := range lbs {
-		fmt.Printf("%s | %s\n", lb.ID, lb.Name)
+		r.AddLoadBalancer(lb)
 	}
-	listenerIDs, err := osClient.ListListenerIDsForCurrentTenant()
+	listeners, err := osClient.ListListenersForCurrentTenant()
 	if err != nil {
-		panic(fmt.Errorf("failed to list listener ids %s", err))
+		panic(fmt.Errorf("failed to list listener %s", err))
 	}
-	fmt.Printf("-------------------------------------------------------------------------\n")
-	fmt.Printf("Listener IDs\n")
-	fmt.Printf("-------------------------------------------------------------------------\n")
-	for _, id := range listenerIDs {
-		fmt.Printf("%s\n", id)
+	for _, listener := range listeners {
+		r.AddListener(listener)
 	}
-	monitorIDs, err := osClient.ListMonitorIDsForCurrentTenant()
+	pools, err := osClient.GetPoolsForCurrentTenant()
 	if err != nil {
-		panic(fmt.Errorf("failed to list healthmonitor ids %s", err))
+		panic(fmt.Errorf("failed to list pools %s", err))
 	}
-	fmt.Printf("-------------------------------------------------------------------------\n")
-	fmt.Printf("Healthmonitor IDs\n")
-	fmt.Printf("-------------------------------------------------------------------------\n")
-	for _, id := range monitorIDs {
-		fmt.Printf("%s\n", id)
+	for _, pool := range pools {
+		r.AddPool(pool)
 	}
-	poolIDs, err := osClient.GetPoolIDsForCurrentTenant()
+	monitors, err := osClient.ListMonitorsForCurrentTenant()
 	if err != nil {
 		panic(fmt.Errorf("failed to list healthmonitor ids %s", err))
 	}
-	fmt.Printf("-------------------------------------------------------------------------\n")
-	fmt.Printf("Pool IDs\n")
-	fmt.Printf("-------------------------------------------------------------------------\n")
-	for _, id := range poolIDs {
-		fmt.Printf("%s\n", id)
+	for _, monitor := range monitors {
+		r.AddMonitor(monitor)
 	}
+	fmt.Println(r.GetTreeStringWithLegend())
 }
