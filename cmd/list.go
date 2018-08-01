@@ -63,6 +63,13 @@ func listEverything() {
 	}
 	for _, pool := range pools {
 		r.AddPool(pool)
+		members, err := osClient.GetMembersForPoolID(pool.ID)
+		if err != nil {
+			panic(fmt.Errorf("failed to list members for pool %s, %s", pool.ID, err))
+		}
+		for _, member := range members {
+			r.AddMember(pool.ID, member)
+		}
 	}
 	monitors, err := osClient.ListMonitorsForCurrentTenant()
 	if err != nil {

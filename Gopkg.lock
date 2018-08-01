@@ -23,7 +23,7 @@
     "openstack/utils",
     "pagination"
   ]
-  revision = "f8826f28e31a2f66e771939532bcae910ed2420f"
+  revision = "d2cd9a018b4a0107e1fc4b9f98c869d9a59b55e0"
 
 [[projects]]
   branch = "master"
@@ -145,6 +145,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8d19cc7b6c0fa22463db6b56cf409a26c306b77caa6e408468635d57146d4c76"
+  inputs-digest = "8848812d36df47bb69e82f25bf77e9a3eab7fb6e14c890130accac42005b53bc"
   solver-name = "gps-cdcl"
   solver-version = 1

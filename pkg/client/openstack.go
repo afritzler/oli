@@ -40,6 +40,7 @@ type OpenStackProvider interface {
 	GetPoolIDsForListenerID(listenerid string) ([]string, error)
 	GetListenerIDsForLoadbalancerID(loadbalancerid string) ([]string, error)
 	GetPoolIDsForCurrentTenant() ([]string, error)
+	GetMembersForPoolID(poolid string) ([]pools.Member, error)
 	DeleteLoadBalancer(id string) error
 }
 
@@ -245,6 +246,27 @@ func (o *openstackprovider) GetMonitorIDsForPoolID(poolid string) ([]string, err
 		ids = append(ids, monitor.ID)
 	}
 	return ids, nil
+}
+
+func (o *openstackprovider) GetMembersForPoolID(poolid string) ([]pools.Member, error) {
+	allPages, err := pools.List(o.networkClient, pools.ListOpts{
+		TenantID: o.opts.TenantID,
+		ID:       poolid,
+	}).AllPages()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list pool pages %s", err)
+	}
+	pools, err := pools.ExtractPools(allPages)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract pools from pages %s", err)
+	}
+	if len(pools) > 1 {
+		return nil, fmt.Errorf("got more than one pool for ID %s. this should never happen %s", poolid, err)
+	} else if len(pools) == 0 {
+		return nil, nil
+	} else {
+		return pools[0].Members, nil
+	}
 }
 
 func (o *openstackprovider) DeleteLoadBalancer(id string) error {
