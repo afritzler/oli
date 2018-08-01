@@ -35,6 +35,7 @@ type OpenStackProvider interface {
 	ListMonitorsForCurrentTenant() ([]monitors.Monitor, error)
 	GetPoolsForCurrentTenant() ([]pools.Pool, error)
 	GetListenersForLoadbalancerID(loadbalancerid string) ([]listeners.Listener, error)
+	GetPoolsForListenerID(loadbalancerid string, listenerid string) ([]pools.Pool, error)
 	GetMonitorsForPoolID(poolid string) ([]monitors.Monitor, error)
 	GetPoolIDsForCurrentTenant() ([]string, error)
 	GetMembersForPoolID(poolid string) ([]pools.Member, error)
@@ -45,9 +46,18 @@ type openstackprovider struct {
 	opts          *gophercloud.AuthOptions
 	provider      *gophercloud.ProviderClient
 	networkClient *gophercloud.ServiceClient
+	dryrun        bool
 }
 
-func NewOpenStackProvider() (OpenStackProvider, error) {
+type Config struct {
+	DryRun bool
+}
+
+func NewDefaultOpenStackProvider() (OpenStackProvider, error) {
+	return NewOpenStackProvider(Config{})
+}
+
+func NewOpenStackProvider(config Config) (OpenStackProvider, error) {
 	opts, err := openstack.AuthOptionsFromEnv()
 	opts.DomainName = os.Getenv("OS_USER_DOMAIN_NAME")
 	fmt.Println("============")
@@ -71,7 +81,7 @@ func NewOpenStackProvider() (OpenStackProvider, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get network client %s", err)
 	}
-	return &openstackprovider{opts: &opts, provider: provider, networkClient: networkClient}, nil
+	return &openstackprovider{opts: &opts, provider: provider, networkClient: networkClient, dryrun: config.DryRun}, nil
 }
 
 func (o *openstackprovider) ListLBaaS() ([]loadbalancers.LoadBalancer, error) {
@@ -161,10 +171,11 @@ func (o *openstackprovider) GetPoolIDsForCurrentTenant() ([]string, error) {
 	return ids, nil
 }
 
-func (o *openstackprovider) GetPoolsForListenerID(listenerid string) ([]pools.Pool, error) {
+func (o *openstackprovider) GetPoolsForListenerID(loadbalancerid string, listenerid string) ([]pools.Pool, error) {
 	allPages, err := pools.List(o.networkClient, pools.ListOpts{
-		ListenerID: listenerid,
-		TenantID:   o.opts.TenantID,
+		ListenerID:     listenerid,
+		LoadbalancerID: loadbalancerid,
+		TenantID:       o.opts.TenantID,
 	}).AllPages()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pool pages for pool id %s, %s", listenerid, err)
@@ -232,56 +243,68 @@ func (o *openstackprovider) GetMembersForPoolID(poolid string) ([]pools.Member, 
 	}
 }
 
+func (o *openstackprovider) stepf(format string, args ...interface{}) func(func() error) error {
+	return func(f func() error) error {
+		msg := fmt.Sprintf(format, args...)
+		prefix := ""
+		if o.dryrun {
+			prefix = "Dry run: "
+		}
+		fmt.Printf("%s%s", prefix, msg)
+
+		var err error
+		if o.dryrun {
+			err = f()
+		}
+
+		if err != nil {
+			fmt.Printf("failed to %s: %v", msg, err)
+		}
+		return err
+	}
+}
+
 func (o *openstackprovider) DeleteLoadBalancer(id string) error {
 	fmt.Printf("deleting loadbalancer with id %s\n", id)
 	listeners, err := o.GetListenersForLoadbalancerID(id)
 	if err != nil {
 		return fmt.Errorf("failed to get listener for loadbalancer ID %s, %s", id, err)
 	}
-	fmt.Printf("listenercount %d\n", len(listeners))
-	// remove all listeners for a certain LB ID
 	for _, listener := range listeners {
-		fmt.Printf("found listener with id %s\n", listener.ID)
-		pools, err := o.GetPoolsForListenerID(listener.ID)
-		fmt.Printf("poolscount %d\n", len(pools))
-
+		pools, err := o.GetPoolsForListenerID(id, listener.ID)
 		if err != nil {
 			return fmt.Errorf("failed to get pool IDs for listener ID %s, %s", listener.ID, err)
 		}
-		// remove all pools
 		for _, pool := range pools {
-			fmt.Printf("found pool with id %s\n", id)
-			hms, err := o.GetMonitorsForPoolID(pool.ID)
-			fmt.Printf("hmcount %d\n", len(hms))
-
-			if err != nil {
-				return fmt.Errorf("failed to get monitor IDs for pool ID %s, %s", pool.ID, err)
+			if pool.MonitorID != "" {
+				if err := o.stepf("delete health monitor with id %s\n", pool.MonitorID)(func() error {
+					//return monitors.Delete(o.networkClient, pool.MonitorID).Err
+					return nil
+				}); err != nil {
+					return err
+				}
+			} else {
+				fmt.Printf("no health monitor found for pool id %s\n", pool.ID)
 			}
-			// remove all health monitors
-			for _, hm := range hms {
-				fmt.Printf("found healthmonitor with id %s\n", id)
-				// result := monitors.Delete(o.networkClient, hmID)
-				// if result.Err != nil {
-				// 	return fmt.Errorf("failed to delete monitor with ID %s, %s", hmID, result.Err)
-				// }
-				fmt.Printf("deleted health monitor with id %s\n", hm.ID)
+			if err := o.stepf("delete pool with id %s\n", pool.ID)(func() error {
+				// return pools.Delete(o.networkClient, poolID)
+				return nil
+			}); err != nil {
+				return err
 			}
-			// result := pools.Delete(o.networkClient, poolID)
-			// if result.Err != nil {
-			// 	return fmt.Errorf("failed to delete pool with ID %s, %s", poolID, result.Err)
-			// }
-			fmt.Printf("deleted pool with id %s\n", pool.ID)
 		}
-		// result := listeners.Delete(o.networkClient, listenerID)
-		// if result.Err != nil {
-		// 	return fmt.Errorf("failed to delete listener with ID %s, %s", listenerID, result.Err)
-		// }
-		fmt.Printf("deleted listener with id %s\n", listener.ID)
+		if err := o.stepf("delete listener with id %s\n", listener.ID)(func() error {
+			// return listeners.Delete(o.networkClient, listenerID)
+			return nil
+		}); err != nil {
+			return err
+		}
 	}
-	// result := loadbalancers.Delete(o.networkClient, id)
-	// if result.Err != nil {
-	// 	return fmt.Errorf("failed to delete loadbalancer with ID %s, %s", id, result.Err)
-	// }
-	fmt.Printf("deleted loadbalancer with id %s\n", id)
+	if err := o.stepf("delete loadbalancer with id %s\n", id)(func() error {
+		// return loadbalancers.Delete(o.networkClient, id)
+		return nil
+	}); err != nil {
+		return err
+	}
 	return nil
 }

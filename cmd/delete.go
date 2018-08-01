@@ -16,33 +16,36 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/afritzler/oli/pkg/client"
 	"github.com/spf13/cobra"
 )
 
 // deleteCmd represents the delete command
-var deleteCmd = &cobra.Command{
-	Use:   "delete",
-	Short: "Delete a LoadBalancer + everything attached",
-	Long:  `Delete a LoadBalancer + everything attached.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) == 0 {
-			fmt.Println("must provider a loadbalancer ID")
-			os.Exit(1)
-		}
-		osClient, err := client.NewOpenStackProvider()
-		if err != nil {
-			panic(fmt.Errorf("failed to create os client %s", err))
-		}
-		err = osClient.DeleteLoadBalancer(args[0])
-		if err != nil {
-			panic(fmt.Errorf("failed to delete loadbalancer %s", err))
-		}
-	},
+func deleteCmd() *cobra.Command {
+	var noDryRun bool
+	c := &cobra.Command{
+		Use:   "delete <LoadBalancerID>",
+		Short: "Delete a LoadBalancer + everything attached",
+		Long:  `Delete a LoadBalancer + everything attached.`,
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			osClient, err := client.NewOpenStackProvider(client.Config{
+				DryRun: !noDryRun,
+			})
+			if err != nil {
+				panic(fmt.Errorf("failed to create os client %s", err))
+			}
+			err = osClient.DeleteLoadBalancer(args[0])
+			if err != nil {
+				panic(fmt.Errorf("failed to delete loadbalancer %s", err))
+			}
+		},
+	}
+	c.Flags().BoolVar(&noDryRun, "no-dry-run", false, "The real deal!")
+	return c
 }
 
 func init() {
-	rootCmd.AddCommand(deleteCmd)
+	rootCmd.AddCommand(deleteCmd())
 }

@@ -39,7 +39,7 @@ func init() {
 func listEverything() {
 	r := renderer.NewTreeRenderer()
 
-	osClient, err := client.NewOpenStackProvider()
+	osClient, err := client.NewDefaultOpenStackProvider()
 	if err != nil {
 		panic(fmt.Errorf("failed to create os client %s", err))
 	}
