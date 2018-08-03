@@ -8,7 +8,7 @@ go get github.com/afritzler/oli
 
 # Usage
 
-To use `oli` you need to `source` your `XYZ-openrc.sh` file to load all necessary OpenStack specific environment variables. 
+To use `oli` you need to `source` your `XYZ-openrc.sh` file to load the OpenStack credentials.
 
 ```
 Usage:
