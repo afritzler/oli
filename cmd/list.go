@@ -16,27 +16,32 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/spf13/cobra"
 
 	"github.com/afritzler/oli/pkg/client"
 	"github.com/afritzler/oli/pkg/renderer"
-	"github.com/spf13/cobra"
 )
 
 // listCmd represents the list command
-var listCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List everything LBaaS specific in your tenant",
-	Long:  `List everything LBaaS specific in your tenant.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		listEverything()
-	},
+func listCmd() *cobra.Command {
+	var listEmpty bool
+	c := &cobra.Command{
+		Use:   "list",
+		Short: "List everything LBaaS specific in your tenant",
+		Long:  `List everything LBaaS specific in your tenant.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			listEverything(listEmpty)
+		},
+	}
+	c.Flags().BoolVar(&listEmpty, "empty", false, "Show only LoadBalancers with no Listeners and Pool.")
+	return c
 }
 
 func init() {
-	rootCmd.AddCommand(listCmd)
+	rootCmd.AddCommand(listCmd())
 }
 
-func listEverything() {
+func listEverything(listEmpty bool) {
 	r := renderer.NewTreeRenderer()
 
 	osClient, err := client.NewDefaultOpenStackProvider()
@@ -48,35 +53,40 @@ func listEverything() {
 		panic(fmt.Errorf("failed to list lb ids %s", err))
 	}
 	for _, lb := range lbs {
-		r.AddLoadBalancer(lb)
+		if listEmpty && len(lb.Listeners) == 0 {
+			r.AddLoadBalancer(lb)
+		}
 	}
-	listeners, err := osClient.ListListenersForCurrentTenant()
-	if err != nil {
-		panic(fmt.Errorf("failed to list listener %s", err))
-	}
-	for _, listener := range listeners {
-		r.AddListener(listener)
-	}
-	pools, err := osClient.GetPoolsForCurrentTenant()
-	if err != nil {
-		panic(fmt.Errorf("failed to list pools %s", err))
-	}
-	for _, pool := range pools {
-		r.AddPool(pool)
-		members, err := osClient.GetMembersForPoolID(pool.ID)
+
+	if !listEmpty {
+		listeners, err := osClient.ListListenersForCurrentTenant()
 		if err != nil {
-			panic(fmt.Errorf("failed to list members for pool %s, %s", pool.ID, err))
+			panic(fmt.Errorf("failed to list listener %s", err))
 		}
-		for _, member := range members {
-			r.AddMember(pool.ID, member)
+		for _, listener := range listeners {
+			r.AddListener(listener)
 		}
-	}
-	monitors, err := osClient.ListMonitorsForCurrentTenant()
-	if err != nil {
-		panic(fmt.Errorf("failed to list healthmonitor ids %s", err))
-	}
-	for _, monitor := range monitors {
-		r.AddMonitor(monitor)
+		pools, err := osClient.GetPoolsForCurrentTenant()
+		if err != nil {
+			panic(fmt.Errorf("failed to list pools %s", err))
+		}
+		for _, pool := range pools {
+			r.AddPool(pool)
+			members, err := osClient.GetMembersForPoolID(pool.ID)
+			if err != nil {
+				panic(fmt.Errorf("failed to list members for pool %s, %s", pool.ID, err))
+			}
+			for _, member := range members {
+				r.AddMember(pool.ID, member)
+			}
+		}
+		monitors, err := osClient.ListMonitorsForCurrentTenant()
+		if err != nil {
+			panic(fmt.Errorf("failed to list healthmonitor ids %s", err))
+		}
+		for _, monitor := range monitors {
+			r.AddMonitor(monitor)
+		}
 	}
 	fmt.Println(r.GetTreeStringWithLegend())
 }
