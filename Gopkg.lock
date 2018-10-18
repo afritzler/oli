@@ -11,7 +11,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:ab319421de8f0879c9997c33260f9b7860a076b0f6026121784eecc1518fde44"
+  digest = "1:f1e50716189838b676808745f89c3cfc7dcd7231849fdc3f5748484b8a12e0c0"
   name = "github.com/gophercloud/gophercloud"
   packages = [
     ".",
@@ -27,7 +27,7 @@
     "pagination",
   ]
   pruneopts = "UT"
-  revision = "12f6ea48173fdcdc883b817e7ed5a20f2684df4e"
+  revision = "6f0ea755af5c6931678bc34f9ef315a5b0aa6ff0"
 
 [[projects]]
   digest = "1:c0d19ab64b32ce9fe5cf4ddceba78d5bc9807f0016db6b1183599da3dcc24d10"
@@ -149,11 +149,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:c2789211d4035eb0843b85958ecf7cb4a5ea91c2d4decee652c94ce898e433cb"
+  digest = "1:0a40b0bdd57a93e741d8557465be3a2edeec408e9b6399586ad65bbe8e355796"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = "UT"
-  revision = "4497e2df6f9e69048a54498c7affbbec3294ad47"
+  revision = "fa43e7bc11baaae89f3f902b2b4d832b68234844"
 
 [[projects]]
   digest = "1:8029e9743749d4be5bc9f7d42ea1659471767860f0cdc34d37c3111bd308a295"
