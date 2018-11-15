@@ -27,7 +27,7 @@
     "pagination",
   ]
   pruneopts = "UT"
-  revision = "aa00757ee3ab58e53520b6cb910ca0543116400a"
+  revision = "3a7818a07cfc862267a0b03635075a444c92dcda"
 
 [[projects]]
   digest = "1:c0d19ab64b32ce9fe5cf4ddceba78d5bc9807f0016db6b1183599da3dcc24d10"
@@ -141,19 +141,19 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:530b61e812573f3600e7c23b1c63ce685217482389bfd85e4b7bfd21692c2f70"
+  digest = "1:fbbce3ff584585118f3c270df893dea88eb3e7ddbece46ea322410af9ae27829"
   name = "github.com/xlab/treeprint"
   packages = ["."]
   pruneopts = "UT"
-  revision = "d6fb6747feb6e7cfdc44682a024bddf87ef07ec2"
+  revision = "a009c3971eca89777614839eb7f69abed3ea3959"
 
 [[projects]]
   branch = "master"
-  digest = "1:e2503f590982f6c0cc06abd7b94b17ded6804bada8eb79af753b5fb676dfdecc"
+  digest = "1:7ba061af4131fb44b30448572acd0d6fefbf63a61b97b7ef1dea0be5871c2742"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = "UT"
-  revision = "3a76605856fddce5718553cbb8bd50ca492a7274"
+  revision = "66b7b1311ac80bbafcd2daeef9a5e6e2cd1e2399"
 
 [[projects]]
   digest = "1:8029e9743749d4be5bc9f7d42ea1659471767860f0cdc34d37c3111bd308a295"
