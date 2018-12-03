@@ -11,7 +11,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:6305b9b78f824ec334fd0727e3f363467b2f781c86a10f286f9958deffbf5cb5"
+  digest = "1:04d72f163b6461f1dc898d051a44450cf9a0a62ad578f2f61f889d8146426d00"
   name = "github.com/gophercloud/gophercloud"
   packages = [
     ".",
@@ -27,7 +27,7 @@
     "pagination",
   ]
   pruneopts = "UT"
-  revision = "3a7818a07cfc862267a0b03635075a444c92dcda"
+  revision = "fac2636416a98a198b71b7ebd8d6acba6a989cd4"
 
 [[projects]]
   digest = "1:c0d19ab64b32ce9fe5cf4ddceba78d5bc9807f0016db6b1183599da3dcc24d10"
@@ -149,11 +149,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:225564f71149334315118db714e1ea87513e4a11cf4acb27e26bc7577cebfa0b"
+  digest = "1:8775d8a768d9e65e8b659172804aac5db1fc8d563ba766470a6c2698c57c61a7"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = "UT"
-  revision = "0cf1ed9e522b7dbb416f080a5c8003de9b702bf4"
+  revision = "4ed8d59d0b35e1e29334a206d1b3f38b1e5dfb31"
 
 [[projects]]
   digest = "1:8029e9743749d4be5bc9f7d42ea1659471767860f0cdc34d37c3111bd308a295"
@@ -171,12 +171,12 @@
   version = "v0.3.0"
 
 [[projects]]
-  digest = "1:342378ac4dcb378a5448dd723f0784ae519383532f5e70ade24132c4c8693202"
+  digest = "1:4d2e5a73dc1500038e504a8d78b986630e3626dc027bc030ba5c75da257cdb96"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
   pruneopts = "UT"
-  revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
-  version = "v2.2.1"
+  revision = "51d6538a90f86fe93ac480b35f37b2be17fef232"
+  version = "v2.2.2"
 
 [solve-meta]
   analyzer-name = "dep"
